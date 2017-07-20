@@ -22,13 +22,11 @@ import scipy.misc, scipy.io
 import patchShow
 import argparse # parsing arguments
 
-mean = np.float32([104.0, 117.0, 123.0])
+mean = np.load('nets/Urban/mean.npy').mean(1).mean(1)
 
-fc_layers = ["fc6", "fc7", "fc8", "loss3/classifier", "fc1000", "prob"]
+fc_layers = ["fc6", "fc7", "fc8", "loss3/classifier", "fc1000", "prob","pool5"]
 conv_layers = ["conv1", "conv2", "conv3", "conv4", "conv5"]
 
-if settings.gpu:
-  caffe.set_mode_gpu() # uncomment this if gpu processing is available
 
 
 def get_code(path, layer):
@@ -42,6 +40,7 @@ def get_code(path, layer):
   images = np.zeros((batch_size,) + image_size, dtype='float32')
 
   in_image = scipy.misc.imread(path)
+  print in_image.shape 
   in_image = scipy.misc.imresize(in_image, (image_size[1], image_size[2]))
 
   for ni in range(images.shape[0]):
@@ -51,12 +50,10 @@ def get_code(path, layer):
   data = images[:,::-1] 
 
   # subtract the ImageNet mean
-  matfile = scipy.io.loadmat('ilsvrc_2012_mean.mat')
-  image_mean = matfile['image_mean']
-  topleft = ((image_mean.shape[0] - image_size[1])/2, (image_mean.shape[1] - image_size[2])/2)
-  image_mean = image_mean[topleft[0]:topleft[0]+image_size[1], topleft[1]:topleft[1]+image_size[2]]
-  del matfile
-  data -= np.expand_dims(np.transpose(image_mean, (2,0,1)), 0) # mean is already BGR
+  
+  image_mean = np.load('nets/Urban/mean.npy')
+
+  data -= np.expand_dims(image_mean, 0) # mean is already BGR
 
   # initialize the encoder
   encoder = caffe.Net(settings.encoder_definition, settings.encoder_weights, caffe.TEST)
@@ -110,7 +107,7 @@ def make_step_net(net, end, unit, image, xy=0, step_size=1):
   dst = net.blobs[end]
 
   acts = net.forward(data=image, end=end)
-
+  print "activations"
   one_hot = np.zeros_like(dst.data)
   
   # Move in the direction of increasing activation of the given neuron
@@ -220,7 +217,9 @@ def activation_maximization(net, generator, gen_in_layer, gen_out_layer, start_c
       
       # 1. pass the code to generator to get an image x0
       generated = generator.forward(feat=src.data[:])
-      x0 = generated[gen_out_layer]   # 256x256
+      x0 = generated[gen_out_layer]   # 256x256# Convert from BGR to RGB
+      normalized_img = patchShow.patchShow_single(x0, in_range=(-120,120))        
+      scipy.misc.imsave("x0.jpg", normalized_img)
 
       # Crop from 256x256 to 227x227
       cropped_x0 = x0.copy()[:,:,topleft[0]:topleft[0]+image_size[0], topleft[1]:topleft[1]+image_size[1]]
@@ -276,6 +275,9 @@ def activation_maximization(net, generator, gen_in_layer, gen_out_layer, start_c
       elif grad_norm_net == 0:
         print " grad_norm_net is 0"
         break
+#       elif best_act > 0.50:
+#         print "Activation reached above 0.50, breaking to avoid saturation"
+#         break
 
   # returning the resulting image
   print " -------------------------"
@@ -355,6 +357,7 @@ def main():
     }
   ]
 
+  caffe.set_mode_gpu()
   # networks
   generator = caffe.Net(settings.generator_definition, settings.generator_weights, caffe.TEST)
   net = caffe.Classifier(args.net_definition, args.net_weights,
@@ -394,7 +397,7 @@ def main():
   output_image = activation_maximization(net, generator, gen_in_layer, gen_out_layer, start_code, params, 
             clip=args.clip, unit=args.unit, xy=args.xy, debug=args.debug,
             upper_bound=upper_bound, lower_bound=lower_bound)
-
+  print output_image.shape
   # Save image
   filename = "%s/%s_%s_%s_%s_%s__%s.jpg" % (
       args.output_dir,

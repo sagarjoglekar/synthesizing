@@ -2,20 +2,22 @@
 
 opt_layer=fc6
 act_layer=fc8
-units=945
+units=0
 xy=0
 
 # Hyperparam settings for visualizing AlexNet
-iters="30"
-weights="99"
-rates="1.0"
-end_lr=1e-10
+iters=50
+weights=0.1
+rates="0.05"
+end_lr=1e-4
+net_weights="nets/Urban/caffe_model_beauty_augmented_iter_10000.caffemodel"
+net_definition="nets/Urban/caffenet_deploy_1.prototxt"
 
 # Clipping
 clip=0
 multiplier=3
 bound_file=act_range/${multiplier}x/${opt_layer}.txt
-init_file=images/red_pepper.jpg
+init_file="img1500.jpeg" #"images/cat.jpg"
 
 # Debug
 debug=1
@@ -39,7 +41,7 @@ for unit in ${units}; do
       for w in ${weights}; do
         for lr in ${rates}; do
 
-          L2="0.${w}"
+          L2=1.05
 
           # Optimize images maximizing fc8 unit
           python ./act_max.py \
@@ -53,9 +55,11 @@ for unit in ${units}; do
               --L2 ${L2} \
               --seed ${seed} \
               --clip ${clip} \
-              --bound ${bound_file} \
               --debug ${debug} \
               --output_dir ${output_dir} \
+              --net_weights ${net_weights} \
+              --net_definition ${net_definition} \
+              --bound ${bound_file} \
               --init_file ${init_file}
         done
       done

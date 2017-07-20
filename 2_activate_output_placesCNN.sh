@@ -6,22 +6,22 @@
 # fi
 
 # Get label for each unit
-path_labels="misc/categoryIndex_places205.txt"
+path_labels="misc/urban.txt"
 IFS=$'\n' read -d '' -r -a labels < ${path_labels}
 
 opt_layer=fc6
 act_layer=fc8
-units="2 7 8 12 71" #"${1}"
+units="1" #"${1}"
 xy=0
 
 # Net
-net_weights="nets/placesCNN/places205CNN_iter_300000.caffemodel"
-net_definition="nets/placesCNN/places205CNN_deploy_updated.prototxt"
+net_weights="nets/Urban/beauty.caffemodel"
+net_definition="nets/Urban/beauty.prototxt"
 
 # Hyperparam settings for visualizing AlexNet
-iters="200"
+iters="300"
 weights="99"
-rates="8.0"
+rates="8"
 end_lr=1e-10
 
 # Clipping
@@ -71,7 +71,6 @@ for unit in ${units}; do
               --L2 ${L2} \
               --seed ${seed} \
               --clip ${clip} \
-              --bound ${bound_file} \
               --debug ${debug} \
               --output_dir ${output_dir} \
               --init_file ${init_file} \

@@ -7,18 +7,20 @@
 # fi
 
 opt_layer=fc6
-act_layer=conv5
-units="8 55 154 181 45" #"${1}"
+act_layer=fc8
+units="0 1" #"${1}"
 xy=6  # spatial location (6, 6)
 
 # Net
-net_weights="nets/placesCNN/places205CNN_iter_300000.caffemodel"
-net_definition="nets/placesCNN/places205CNN_deploy_updated.prototxt"
+#net_weights="nets/placesCNN/places205CNN_iter_300000.caffemodel"
+net_weights="nets/Urban/caffe_model_beauty_binary_iter_10000.caffemodel"
+#net_definition="nets/placesCNN/places205CNN_deploy_updated.prototxt"
+net_definition="nets/Urban/caffenet_deploy_1.prototxt"
 
 # Hyperparam settings for visualizing AlexNet
 iters="200"
 weights="99"
-rates="8.0"
+rates="0.1"
 end_lr=1e-10
 
 # Clipping
