@@ -20,6 +20,7 @@ from numpy.linalg import norm
 from numpy.testing import assert_array_equal
 import scipy.misc, scipy.io
 import patchShow
+import time
 import argparse # parsing arguments
 
 mean = np.load('nets/Urban/mean.npy').mean(1).mean(1)
@@ -291,7 +292,7 @@ def activation_maximization(net, generator, gen_in_layer, gen_out_layer, start_c
 
       write_label(name, act)
 
-  return best_xx
+  return best_xx , best_act
 
 
 def write_label(filename, act):
@@ -320,6 +321,9 @@ def main():
   parser.add_argument('--output_dir', metavar='b', type=str, default=".", help='Output directory for saving results')
   parser.add_argument('--net_weights', metavar='b', type=str, default=settings.net_weights, help='Weights of the net being visualized')
   parser.add_argument('--net_definition', metavar='b', type=str, default=settings.net_definition, help='Definition of the net being visualized')
+  parser.add_argument('--outName' , metavar='s',type=str,help='name of the output file')
+  parser.add_argument('--appendImages', action='append')
+  parser.add_argument('--appendNames', action='append')
 
   args = parser.parse_args()
 
@@ -356,8 +360,9 @@ def main():
       'end_step_size': args.end_lr
     }
   ]
-
+  act_unit = args.unit
   caffe.set_mode_gpu()
+  #caffe.set_mode_cpu()
   # networks
   generator = caffe.Net(settings.generator_definition, settings.generator_weights, caffe.TEST)
   net = caffe.Classifier(args.net_definition, args.net_weights,
@@ -374,47 +379,69 @@ def main():
   # Fix the seed
   np.random.seed(args.seed)
 
-  if args.init_file != "None":
-    start_code, start_image = get_code(args.init_file, args.opt_layer)
+  
 
-    print "Loaded start code: ", start_code.shape
-  else:
-    start_code = np.random.normal(0, 1, shape)
-
-  # Load the activation range
-  upper_bound = lower_bound = None
-
-  # Set up clipping bounds
-  if args.bound != "":
-    n_units = shape[1]
-    upper_bound = np.loadtxt(args.bound, delimiter=' ', usecols=np.arange(0, n_units), unpack=True)
-    upper_bound = upper_bound.reshape(start_code.shape)
-
-    # Lower bound of 0 due to ReLU
-    lower_bound = np.zeros(start_code.shape)
-
+  
+  image_list = args.appendImages
+  #print image_list
+  name_list = args.appendNames
+  #print name_list
   # Optimize a code via gradient ascent
-  output_image = activation_maximization(net, generator, gen_in_layer, gen_out_layer, start_code, params, 
-            clip=args.clip, unit=args.unit, xy=args.xy, debug=args.debug,
-            upper_bound=upper_bound, lower_bound=lower_bound)
-  print output_image.shape
-  # Save image
-  filename = "%s/%s_%s_%s_%s_%s__%s.jpg" % (
-      args.output_dir,
-      args.act_layer, 
-      str(args.unit).zfill(4), 
-      str(args.n_iters).zfill(2), 
-      args.L2, 
-      args.start_lr,
-      args.seed
-    )
+  for i in range(len(name_list)):
+      start = time.time()
+      if len(image_list) > 0:
+          start_code, start_image = get_code(image_list[i], args.opt_layer)
+          print "Loaded start code: ", start_code.shape
+      else:
+          start_code = np.random.normal(0, 1, shape)
 
-  # Save image
-  save_image(output_image, filename)
-  print "Saved to %s" % filename
+      # Load the activation range
+      upper_bound = lower_bound = None
+      # Set up clipping bounds
+      if args.bound != "":
+          n_units = shape[1]
+          upper_bound = np.loadtxt(args.bound, delimiter=' ', usecols=np.arange(0, n_units), unpack=True)
+          upper_bound = upper_bound.reshape(start_code.shape)
 
-  if args.debug:
-    save_image(output_image, "./debug/%s.jpg" % str(args.n_iters).zfill(3))
+      # Lower bound of 0 due to ReLU
+      lower_bound = np.zeros(start_code.shape)
+
+      print "Running file %d or %d , filename : %s"%(i , len(name_list) , image_list[i] )
+
+      output_image , best_act_final = activation_maximization(net, generator, gen_in_layer, gen_out_layer, start_code, params, 
+               clip=args.clip, unit=act_unit, xy=args.xy, debug=args.debug,
+               upper_bound=upper_bound, lower_bound=lower_bound)
+      print output_image.shape
+      
+      #Save image
+      
+      #filename = "%s/%s_%s_%s_%s_%s_%s__%s.jpg" % (
+      #    args.output_dir,
+      #    args.init_file.split('.')[0],
+      #    args.act_layer, 
+      #    str(args.unit).zfill(4), 
+      #    str(args.n_iters).zfill(2), 
+      #    args.L2, 
+      #    args.start_lr,
+      #    args.seed
+      #  )
+      end = time.time()
+      print '%30s' % 'Executed DGN-AM in ', str((end - start)*1000), 'ms'
+      start = time.time()
+      filename = "%s/%s_%s_%s_.jpg" % (
+              args.output_dir,
+              name_list[i],
+              str(args.unit).zfill(4),
+              str(best_act_final)
+      )
+      # Save image
+      save_image(output_image, filename)
+      print "Saved to %s" % filename
+      end = time.time()
+      print '%30s' % 'Saved File in in ', str((end - start)*1000), 'ms'
+
+#   if args.debug:
+#     save_image(output_image, "./debug/%s.jpg" % str(args.n_iters).zfill(3))
   
 
 if __name__ == '__main__':

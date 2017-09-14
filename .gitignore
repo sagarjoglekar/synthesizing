@@ -73,3 +73,10 @@ target/
 3.jpeg
 img1500.jpeg
 streetview.jpeg
+nets/caffenet
+nets/googlenet
+nets/ilsvrc_2012_mean.mat
+nets/placesCNN
+nets/trainUpconv
+nets/upconv
+nets/Urban
