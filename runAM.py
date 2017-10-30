@@ -21,7 +21,7 @@ net_weights='nets/Urban/caffe_model_beauty_augmented_iter_10000.caffemodel'
 net_definition='nets/Urban/caffenet_deploy_1.prototxt'
 
 #imageList = "/datasets_1/sagarj/BellLabs/Data/fringeImages.pkl"
-imageList = "/datasets_1/sagarj/BellLabs/Data/fringeImagesBottomUp.pkl"
+imageList = "/datasets_1/sagarj/BellLabs/Data/bostonDf.pkl"
 
 debug = 1
 # Clipping
@@ -32,7 +32,7 @@ bound_file= 'act_range' + '/' + str(multiplier) + 'x' + '/' + str(opt_layer) +'.
 #init_file="img4.jpg" #"images/cat.jpg"
 
 # Output dir
-output_dir="/datasets/sagarj/streetView/Transform_1000/"
+output_dir="/datasets/sagarj/streetView/Transform_Boston150/"
 
 #rm -rf ${output_dir}
 if not os.path.exists(output_dir):
@@ -55,13 +55,13 @@ if __name__ == "__main__":
     
     for row in imgList:
         #change this
-        
-        if row[1]['label'] == 0:
-            paths1.append(row[1]['path'])
-            name1.append(row[0])
+        print imgList[row]
+        if imgList[row][1]['label'] == 0:
+            paths1.append(imgList[row][1]['path'])
+            name1.append(imgList[row][0])
         else:
-            paths2.append(row[1]['path'])
-            name2.append(row[0])
+            paths2.append(imgList[row][1]['path'])
+            name2.append(imgList[row][0])
         
     print "Processing %d beautyfication images and %d  uglification images images , total %d" , len(name1) , len(name2) , count
         # Running optimization across a sweep of hyperparams
